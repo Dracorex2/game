@@ -1,0 +1,75 @@
+{
+	"format_version": "1.12.0",
+	"minecraft:geometry": [
+		{
+			"description": {
+				"identifier": "geometry.dummy_full",
+				"texture_width": 64,
+				"texture_height": 64,
+				"visible_bounds_width": 2,
+				"visible_bounds_height": 2.5,
+				"visible_bounds_offset": [0, 1, 0]
+			},
+			"bones": [
+				{
+					"name": "root",
+					"pivot": [0, 0, 0],
+					"rotation": [0, 0, 0],
+					"mirror": false,
+					"inflate": 0.0,
+					"debug": false,
+					"render_group_id": 0,
+					"cubes": [
+						{
+							"comment": "Standard Box UV Cube",
+							"origin": [-8, 0, -8],
+							"size": [16, 16, 16],
+							"uv": [0, 0],
+							"inflate": 0.0,
+							"mirror": false
+						},
+						{
+							"comment": "Rotated Cube with Pivot",
+							"origin": [8, 0, 0],
+							"size": [8, 8, 8],
+							"uv": [16, 0],
+							"pivot": [12, 4, 4],
+							"rotation": [0, 45, 0]
+						},
+						{
+							"comment": "Per-Face UV Cube (Advanced Mapping)",
+							"origin": [0, 16, 0],
+							"size": [8, 8, 8],
+							"uv": {
+								"north": {"uv": [0, 0], "uv_size": [8, 8]},
+								"south": {"uv": [8, 0], "uv_size": [8, 8]},
+								"east":  {"uv": [16, 0], "uv_size": [8, 8]},
+								"west":  {"uv": [24, 0], "uv_size": [8, 8]},
+								"up":    {"uv": [8, 8], "uv_size": [8, 8], "rotation": 90},
+								"down":  {"uv": [16, 8], "uv_size": [8, 8]}
+							}
+						}
+					],
+					"locators": {
+						"lead": [0, 10, 0],
+						"right_hand": [5, 5, 0]
+					}
+				},
+				{
+					"name": "child_bone",
+					"parent": "root",
+					"pivot": [0, 10, 0],
+					"rotation": [10, 0, 0],
+					"binding": "c.item_slot",
+					"cubes": [
+						{
+							"origin": [-2, 10, -2],
+							"size": [4, 4, 4],
+							"uv": [32, 0]
+						}
+					]
+				}
+			]
+		}
+	]
+}

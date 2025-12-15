@@ -1,0 +1,47 @@
+Chargement des blocs depuis blocks.block...
+Modèle OBJ chargé: models/cube.obj (36 vertices)
+Modèle OBJ chargé: models/cube.obj (36 vertices)
+Modèle OBJ chargé: models/cube.obj (36 vertices)
+Modèle OBJ chargé: models/flower_cross.obj (24 vertices)
+Modèle OBJ chargé: models/cube.obj (36 vertices)
+Modèle OBJ chargé: models/cube.obj (36 vertices)
+Modèle OBJ chargé: models/cube.obj (36 vertices)
+Modèle OBJ chargé: models/cube.obj (36 vertices)
+Modèle OBJ chargé: models/cube.obj (36 vertices)
+Modèle OBJ chargé: models/hopper.obj (192 vertices)
+Modèle OBJ chargé: models/chest_base.obj (30 vertices)
+Modèle OBJ chargé: models/anim_test_base.obj (36 vertices)
+Total: 13 blocs chargés depuis blocks.block
+Système de blocs initialisé: 13 types de blocs
+Chargement des entités depuis tile_entities.block...
+Modèle OBJ chargé: models/chest_base.obj (30 vertices)
+Entité configurée (OBJ): Chest (Renderer: Default, Model: models/chest_base.obj)
+Modèle OBJ chargé: models/chest_lid.obj (30 vertices)
+  + Partie chargée: lid (models/chest_lid.obj)
+  Animation loaded for bone 'lid': 3 keys
+  @ Animation chargée: animations/chest.json
+Modèle OBJ chargé: models/hopper.obj (192 vertices)
+Entité configurée (OBJ): Hopper (Renderer: Default, Model: models/hopper.obj)
+Modèle Bedrock chargé: models/anime_test.json (2 os)
+Entité configurée (Bedrock): Test (Model: models/anime_test.json)
+  Animation loaded for bone 'head': 4 keys
+  @ Animation chargée: animations/model.animation.json
+Génération du monde avec seed: 1764336415
+Génération des arbres...
+Génération du monde terminée
+TEST: Bloc 'Test' placé en (5, 12, 5)
+PNG chargé: textures/stone.png (16x16)
+PNG chargé: textures/grass.png (16x16)
+PNG chargé: textures/dirt.png (16x16)
+PNG chargé: textures/fire_0.png (16x512)
+  → Texture animée: 32 frames (bloc 4: Flower)
+PNG chargé: textures/glass.png (16x16)
+PNG chargé: textures/oak_log.png (16x16)
+PNG chargé: textures/oak_leaves.png (16x16)
+PNG chargé: textures/sand.png (16x16)
+PNG chargé: textures/water_flow.png (32x1024)
+  → Texture animée: 32 frames (bloc 9: Water)
+PNG chargé: textures/hopper.png (64x64)
+PNG chargé: textures/wood.png (16x16)
+PNG chargé: textures/stone.png (16x16)
+Texture Array: 64x64 (Max Resolution), 13 blocs, 32 frames max, 416 layers

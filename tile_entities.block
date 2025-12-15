@@ -1,0 +1,11 @@
+# Format: BlockName RendererName MainModelPath
+# Optional parts: + PartName PartModelPath
+# Animation: @ AnimationPath
+
+Chest Default models/chest.json
+@ animations/chest.json
+
+Hopper Default models/hopper.json
+
+Test Default models/anime_test.json
+@ animations/model.animation.json

@@ -1,0 +1,12 @@
+# NAME | solid | transparent | translucent | dynamic | texture path | model path
+
+Stone        1 0 0 0 furnace test_cube
+Grass        1 0 0 0 grass test_cube
+Dirt         1 0 0 0 dirt test_cube
+Flower       0 1 0 0 fire_0 flower
+Glass        1 0 1 0 glass test_cube
+Log          1 0 0 0 oak_log test_cube
+Leaves       1 1 0 0 oak_leaves test_cube
+Sand         1 0 0 0 sand test_cube
+Water        0 0 1 0 water_flow test_cube
+TestCubeMapped 1 0 0 0 test_mid test_cube_mapped
