@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "blockparser.h"
-#include "bedrock_block_loader.h"
+#include "obp_loader.h"
 #include "entities.h"
 #include <limits.h>
 #include "lodepng/lodepng.h"
@@ -86,18 +86,36 @@ int parseBlocksFromFile(const char* filepath) {
         }
 
 
-        snprintf(full_path, PATH_MAX, "models/%s.json", model_path);
+        // Déterminer le chemin du modèle OBP
+        char full_path_model[PATH_MAX + 1];
         
-        // Charger le modèle Bedrock pour BLOC STATIQUE
+        // Vérifier si model_path contient déjà l'extension
+        if (strstr(model_path, ".obp") != NULL) {
+            snprintf(full_path_model, PATH_MAX, "models/%s", model_path);
+        } else if (strstr(model_path, ".json") != NULL) {
+            // Remplacer .json par .obp
+            char temp[PATH_MAX];
+            strcpy(temp, model_path);
+            char* ext = strstr(temp, ".json");
+            strcpy(ext, ".obp");
+            snprintf(full_path_model, PATH_MAX, "models/%s", temp);
+        } else {
+            // Pas d'extension, ajouter .obp
+            snprintf(full_path_model, PATH_MAX, "models/%s.obp", model_path);
+        }
+        
+        // Initialiser le pointeur
         game.blocks[i].model = NULL;
         
-        // On passe 0,0 pour forcer l'utilisation des dimensions définies dans le JSON du modèle
-        // Cela permet de respecter le mapping UV du modèle, quelle que soit la résolution réelle de la texture
-        game.blocks[i].model = loadBedrockBlockModel(full_path, 1);
+        // Charger le modèle OBP
+        game.blocks[i].model = loadOBPModel(full_path_model);
         if(!game.blocks[i].model) {
-            fprintf(stderr, "ERREUR CRITIQUE: impossible de charger le modèle bloc %s pour %s\n", 
-                    full_path, name);
-            exit(1);
+            fprintf(stderr, "ERREUR CRITIQUE: impossible de charger le modèle OBP %s pour %s\n", 
+                    full_path_model, name);
+            // On continue au lieu de quitter pour permettre le debug
+            // exit(1);
+        } else {
+            printf("Modèle OBP chargé: %s pour bloc %s\n", full_path_model, name);
         }
         
         // Assigner le renderer par défaut (sera surchargé par entityloader si besoin)

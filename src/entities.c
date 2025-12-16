@@ -5,7 +5,6 @@
 #include <GLFW/glfw3.h>
 #include "entities.h"
 #include "renderer.h" // Pour les shaders uniforms si besoin
-#include "animation.h"
 
 void initEntitySystem() {
     // Rien de spécial pour l'instant
@@ -17,7 +16,7 @@ void assignEntityRenderer(BlockDefinition* def) {
     if(strcmp(def->name, "Chest") == 0) {
         // def->renderFunc = renderChest; // DEPRECATED
         // Utiliser l'animation si disponible, sinon défaut
-        if(def->animation) def->renderFunc = renderAnimated;
+        if(def->model && def->model->animationCount > 0) def->renderFunc = renderAnimated;
         else def->renderFunc = renderDefaultDynamic;
         printf("Renderer 'Chest' assigné au bloc %s (via Animation)\n", def->name);
     }
@@ -28,7 +27,7 @@ void assignEntityRenderer(BlockDefinition* def) {
     else if(strcmp(def->name, "Fan") == 0 || strcmp(def->name, "Windmill") == 0) {
         def->renderFunc = renderRotator;
     }
-    else if(def->animation) {
+    else if(def->model && def->model->animationCount > 0) {
         // Si une animation est chargée, utiliser le rendu animé générique
         def->renderFunc = renderAnimated;
     }
@@ -53,7 +52,7 @@ void renderDefaultDynamic(TileEntity* te, BlockDefinition* def, unsigned int sha
     // Correction physique : décalage de -0.5 en X et Z
     glm_translate(baseModel, (vec3){-0.5f, 0.0f, -0.5f});
     
-    renderBedrockModel(def->model, NULL, 0.0f, shader, baseModel, te->type);
+    renderOBPModel(def->model, 0.0f, shader, baseModel, te->type);
 }
 
 // Rendu générique pour un objet qui tourne (ex: ventilateur, moulin)
@@ -75,7 +74,7 @@ void renderRotator(TileEntity* te, BlockDefinition* def, unsigned int shader, fl
     // Correction physique : décalage de -0.5 en X et Z
     glm_translate(baseModel, (vec3){-0.5f, 0.0f, -0.5f});
     
-    renderBedrockModel(def->model, NULL, 0.0f, shader, baseModel, te->type);
+    renderOBPModel(def->model, 0.0f, shader, baseModel, te->type);
 }
 
 // Rendu animé générique basé sur les données d'animation chargées
@@ -87,5 +86,5 @@ void renderAnimated(TileEntity* te, BlockDefinition* def, unsigned int shader, f
     // Correction physique : décalage de -0.5 en X et Z
     glm_translate(baseModel, (vec3){-0.5f, 0.0f, -0.5f});
     
-    renderBedrockModel(def->model, def->animation, game.currentFrameTime, shader, baseModel, te->type);
+    renderOBPModel(def->model, game.currentFrameTime, shader, baseModel, te->type);
 }

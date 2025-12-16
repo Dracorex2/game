@@ -4,7 +4,7 @@
 #include "entityloader.h"
 #include "types.h"
 #include "world.h"
-#include "bedrock_entity_loader.h"
+#include "obp_loader.h"
 #include "entities.h"
 
 // Map string to function
@@ -34,24 +34,11 @@ void loadEntitiesFromFile(const char* filepath) {
         if(strlen(line) == 0 || line[0] == '#') continue;
 
         if(line[0] == '+') {
-            // Les parties multiples ne sont plus supportées avec le système JSON
-            // Toutes les parties sont définies dans le fichier JSON du modèle
+            // Les parties multiples ne sont plus supportées
             continue;
         } else if(line[0] == '@') {
-            // It's an animation: @ AnimationPath
-            if(currentBlockID == -1) continue;
-            
-            char animPath[128];
-            if(sscanf(line + 1, "%s", animPath) == 1) {
-                game.blocks[currentBlockID].animation = loadBedrockAnimation(animPath);
-                if(game.blocks[currentBlockID].animation) {
-                    printf("  @ Animation chargée: %s\n", animPath);
-                    // Switch to animated renderer if we were using default
-                    if(game.blocks[currentBlockID].renderFunc == renderDefaultDynamic) {
-                        game.blocks[currentBlockID].renderFunc = renderAnimated;
-                    }
-                }
-            }
+            // Les animations sont maintenant incluses dans le fichier OBP
+            continue;
         } else {
             // New Entity: BlockName RendererName ModelPath
             char blockName[64];
@@ -65,24 +52,21 @@ void loadEntitiesFromFile(const char* filepath) {
                     
                     // Override model if it was already loaded by blockloader
                     if(game.blocks[id].model) {
-                        freeBedrockModel(game.blocks[id].model);
+                        freeOBPModel(game.blocks[id].model);
                         game.blocks[id].model = NULL;
                     }
                     
-                    // Charger le modèle JSON
+                    // Charger le modèle OBP
                     char fullPath[256];
-                    // Le chemin est déjà complet dans le fichier config
                     snprintf(fullPath, 256, "%s", modelPath);
                     
-                    // Note: Pour les entités, on pourrait aussi vouloir charger la texture pour avoir les dimensions
-                    // Mais comme la texture est définie dans blocks.block et non ici, on utilise 0,0 pour laisser le JSON décider
-                    // Ou on pourrait récupérer la texture depuis game.blocks[id].texturePath
+                    // Remplacer l'extension .json par .obp si nécessaire
+                    char* ext = strrchr(fullPath, '.');
+                    if (ext && strcmp(ext, ".json") == 0) {
+                        strcpy(ext, ".obp");
+                    }
                     
-                    int texW = 0, texH = 0;
-                    // TODO: Si on veut supporter le dimensionnement auto pour les entités aussi, il faudrait lire le PNG ici.
-                    // Pour l'instant on laisse le JSON faire foi ou le fallback 64x64
-                    
-                    game.blocks[id].model = loadBedrockEntityModel(fullPath, 1, texW, texH);
+                    game.blocks[id].model = loadOBPModel(fullPath);
                     game.blocks[id].renderFunc = getRendererByName(rendererName);
                     
                     if(game.blocks[id].model) {

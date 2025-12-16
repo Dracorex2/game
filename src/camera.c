@@ -23,33 +23,38 @@ void processInput(GLFWwindow *window) {
     vec3 frontXZ = {game.cameraFront[X],0,game.cameraFront[Z]};
     glm_vec3_normalize(frontXZ);
 
-    // Déplacement W/A/S/D
+    // Accumuler le mouvement total
+    vec3 movement = {0.0f, 0.0f, 0.0f};
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        glm_vec3_scale(frontXZ,cameraSpeed,temp);
-        glm_vec3_add(game.plPos,temp,newPos);
-        vec3 test = {newPos[X],game.plPos[Y],newPos[Z]};
-        if(!checkCollisionAABB(test)) { 
-            game.plPos[X]=newPos[X];
-            game.plPos[Z]=newPos[Z];
-        }
+        glm_vec3_add(movement, frontXZ, movement);
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        glm_vec3_scale(frontXZ,cameraSpeed,temp);
-        glm_vec3_sub(game.plPos,temp,newPos);
-        vec3 test = {newPos[X],game.plPos[Y],newPos[Z]};
-        if(!checkCollisionAABB(test)) { game.plPos[X]=newPos[X]; game.plPos[Z]=newPos[Z]; }
+        glm_vec3_sub(movement, frontXZ, movement);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        glm_vec3_scale(right,cameraSpeed,temp);
-        glm_vec3_sub(game.plPos,temp,newPos);
-        vec3 test = {newPos[X],game.plPos[Y],newPos[Z]};
-        if(!checkCollisionAABB(test)) { game.plPos[X]=newPos[X]; game.plPos[Z]=newPos[Z]; }
+        glm_vec3_sub(movement, right, movement);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        glm_vec3_scale(right,cameraSpeed,temp);
-        glm_vec3_add(game.plPos,temp,newPos);
-        vec3 test = {newPos[X],game.plPos[Y],newPos[Z]};
-        if(!checkCollisionAABB(test)) { game.plPos[X]=newPos[X]; game.plPos[Z]=newPos[Z]; }
+        glm_vec3_add(movement, right, movement);
+    }
+
+    // Appliquer le mouvement avec glissement (Sliding)
+    if (glm_vec3_norm2(movement) > 0.001f) {
+        glm_vec3_normalize(movement);
+        glm_vec3_scale(movement, cameraSpeed, movement);
+        
+        // Essayer de bouger en X
+        vec3 testPosX = {game.plPos[X] + movement[X], game.plPos[Y], game.plPos[Z]};
+        if(!checkCollisionAABB(testPosX)) {
+            game.plPos[X] += movement[X];
+        }
+        
+        // Essayer de bouger en Z (avec la nouvelle position X potentielle)
+        vec3 testPosZ = {game.plPos[X], game.plPos[Y], game.plPos[Z] + movement[Z]};
+        if(!checkCollisionAABB(testPosZ)) {
+            game.plPos[Z] += movement[Z];
+        }
     }
 
     // Saut

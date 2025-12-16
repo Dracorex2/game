@@ -2,48 +2,92 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "chunk.h"
 #include "world.h"
-#include "bedrock_loader.h"
+#include "obp_loader.h"
 
-// Ajoute un modèle Bedrock au mesh (bake la géométrie)
-static inline void addBedrockModel(float *vertices, int *index, int x, int y, int z, BedrockModel* model, BlockType blockType) {
+// Ajoute un modèle OBP au mesh (bake la géométrie depuis les données CPU)
+static inline void addOBPModel(float *vertices, int *index, int x, int y, int z, OBPModel* model, BlockType blockType, uint8_t visibleMask) {
     if(!model) return;
     
     float bType = (float)blockType;
     
-    // Parcourir tous les os du modèle et extraire leurs vertices
-    // On copie les vertices pré-calculés du VBO de chaque bone
+    // Parcourir tous les bones du modèle OBP
     for(int b = 0; b < model->boneCount; b++) {
-        BedrockBone* bone = &model->bones[b];
-        if(bone->vertexCount == 0) continue;
+        OBPBone* bone = &model->bones[b];
+        if(bone->indexCount == 0) continue;
+        if(!bone->vertices || !bone->indices) continue;
         
-        // Récupérer les vertices du VBO du bone
-        glBindBuffer(GL_ARRAY_BUFFER, bone->VBO);
-        
-        // Allouer un buffer temporaire pour lire les données
-        int vertexDataSize = bone->vertexCount * 5; // x,y,z,u,v par vertex
-        float* boneVertices = malloc(vertexDataSize * sizeof(float));
-        glGetBufferSubData(GL_ARRAY_BUFFER, 0, vertexDataSize * sizeof(float), boneVertices);
-        
-        // Copier les vertices dans le mesh du chunk avec translation
-        for(int v = 0; v < bone->vertexCount; v++) {
-            int offset = v * 5;
+        // Copier chaque triangle (via les indices)
+        for(int i = 0; i < bone->indexCount; i += 3) {
+            if (i + 2 >= bone->indexCount) break;
             
-            // Position (avec offset du bloc dans le chunk)
-            vertices[(*index)++] = boneVertices[offset + 0] + x;
-            vertices[(*index)++] = boneVertices[offset + 1] + y;
-            vertices[(*index)++] = boneVertices[offset + 2] + z;
+            unsigned int idx0 = bone->indices[i];
+            unsigned int idx1 = bone->indices[i+1];
+            unsigned int idx2 = bone->indices[i+2];
             
-            // UV
-            vertices[(*index)++] = boneVertices[offset + 3];
-            vertices[(*index)++] = boneVertices[offset + 4];
+            // Vérification de sécurité
+            if (idx0 >= bone->vertexCount || idx1 >= bone->vertexCount || idx2 >= bone->vertexCount) {
+                continue;
+            }
             
-            // Type de bloc
-            vertices[(*index)++] = bType;
+            // Calcul de la normale pour le culling
+            float v0[3] = { bone->vertices[idx0*3], bone->vertices[idx0*3+1], bone->vertices[idx0*3+2] };
+            float v1[3] = { bone->vertices[idx1*3], bone->vertices[idx1*3+1], bone->vertices[idx1*3+2] };
+            float v2[3] = { bone->vertices[idx2*3], bone->vertices[idx2*3+1], bone->vertices[idx2*3+2] };
+            
+            float edge1[3] = { v1[0]-v0[0], v1[1]-v0[1], v1[2]-v0[2] };
+            float edge2[3] = { v2[0]-v0[0], v2[1]-v0[1], v2[2]-v0[2] };
+            
+            float normal[3];
+            normal[0] = edge1[1]*edge2[2] - edge1[2]*edge2[1];
+            normal[1] = edge1[2]*edge2[0] - edge1[0]*edge2[2];
+            normal[2] = edge1[0]*edge2[1] - edge1[1]*edge2[0];
+            
+            // Déterminer la face (0=Z+, 1=Z-, 2=X-, 3=X+, 4=Y-, 5=Y+)
+            int faceDir = -1;
+            float absX = (normal[0] > 0) ? normal[0] : -normal[0];
+            float absY = (normal[1] > 0) ? normal[1] : -normal[1];
+            float absZ = (normal[2] > 0) ? normal[2] : -normal[2];
+            
+            // Seuil pour considérer qu'une face est alignée (éviter les faces internes diagonales)
+            if (absX > absY && absX > absZ) {
+                faceDir = (normal[0] > 0) ? 3 : 2;
+            } else if (absY > absX && absY > absZ) {
+                faceDir = (normal[1] > 0) ? 5 : 4;
+            } else if (absZ > absX && absZ > absY) {
+                faceDir = (normal[2] > 0) ? 0 : 1;
+            }
+            
+            // Si la face est alignée sur un axe, vérifier le masque de visibilité
+            if (faceDir != -1) {
+                if (!((visibleMask >> faceDir) & 1)) continue; // Face cachée
+            }
+            
+            // Ajouter les 3 vertices du triangle
+            unsigned int indices[3] = {idx0, idx1, idx2};
+            for(int k=0; k<3; k++) {
+                unsigned int idx = indices[k];
+                
+                // Position
+                vertices[(*index)++] = (bone->vertices[idx * 3 + 0] / 16.0f) + x;
+                vertices[(*index)++] = (bone->vertices[idx * 3 + 1] / 16.0f) + y;
+                vertices[(*index)++] = (bone->vertices[idx * 3 + 2] / 16.0f) + z;
+                
+                // UV
+                if (idx < bone->texCoordCount) {
+                    vertices[(*index)++] = bone->texCoords[idx * 2 + 0];
+                    vertices[(*index)++] = bone->texCoords[idx * 2 + 1];
+                } else {
+                    vertices[(*index)++] = 0.0f;
+                    vertices[(*index)++] = 0.0f;
+                }
+                
+                // Type
+                vertices[(*index)++] = bType;
+            }
         }
-        
-        free(boneVertices);
     }
 }
 
@@ -86,6 +130,9 @@ static inline int shouldRenderCubeFace(Chunk *chunk, int cx, int cz, int x, int 
     // Adjacent à l'air = afficher
     if(adjacentType == BLOCK_AIR) return 1;
     
+    // Sécurité
+    if (adjacentType < 0 || adjacentType >= game.blockCount) return 1;
+    
     // Si le bloc adjacent est opaque, ne pas afficher
     if(!game.blocks[adjacentType].transparent && !game.blocks[adjacentType].translucent) return 0;
     
@@ -118,6 +165,7 @@ static void initSharedBuffers() {
 // Reconstruit le mesh d'un chunk avec face culling
 // Sépare les blocs opaques, transparents (verre) et feuillage (fleurs) pour un rendu correct
 void rebuildChunkMesh(int cx, int cz) {
+    // printf("Rebuilding chunk %d, %d\n", cx, cz);
     extern Chunk **world;
     
     initSharedBuffers();
@@ -161,8 +209,7 @@ void rebuildChunkMesh(int cx, int cz) {
                     continue;
                 }
                 
-                // Bloc standard : utiliser le modèle JSON pour le baking
-                // C'est plus flexible et cohérent avec le reste du système
+                // Bloc standard : utiliser le modèle pour le baking
                 
                 if(!game.blocks[type].model) {
                     // Pas de modèle = on ignore (ne devrait pas arriver)
@@ -184,9 +231,24 @@ void rebuildChunkMesh(int cx, int cz) {
                     index = &opaqueIndex;
                 }
                 
-                // Bake le modèle dans le mesh du chunk
+                // Bake le modèle dans le mesh du chunk (OBP)
                 if(game.blocks[type].model) {
-                    addBedrockModel(vertices, index, x, y, z, game.blocks[type].model, type);
+                    // Calculer le masque de visibilité des faces
+                    uint8_t visibleMask = 0;
+                    
+                    // Pour les fleurs et feuillages, on affiche toujours tout (pas de culling)
+                    if (strcmp(game.blocks[type].name, "Flower") == 0) {
+                        visibleMask = 0xFF;
+                    } else {
+                        if (shouldRenderCubeFace(chunk, cx, cz, x, y, z, type, 0)) visibleMask |= (1 << 0); // Z+
+                        if (shouldRenderCubeFace(chunk, cx, cz, x, y, z, type, 1)) visibleMask |= (1 << 1); // Z-
+                        if (shouldRenderCubeFace(chunk, cx, cz, x, y, z, type, 2)) visibleMask |= (1 << 2); // X-
+                        if (shouldRenderCubeFace(chunk, cx, cz, x, y, z, type, 3)) visibleMask |= (1 << 3); // X+
+                        if (shouldRenderCubeFace(chunk, cx, cz, x, y, z, type, 4)) visibleMask |= (1 << 4); // Y-
+                        if (shouldRenderCubeFace(chunk, cx, cz, x, y, z, type, 5)) visibleMask |= (1 << 5); // Y+
+                    }
+                    
+                    addOBPModel(vertices, index, x, y, z, game.blocks[type].model, type, visibleMask);
                 }
             }
         }

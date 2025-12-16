@@ -10,7 +10,6 @@ SRC = $(wildcard src/*.c)
 OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
 OBJ += obj/glad.o obj/lodepng.o
 
-DEPENDNCIES = ./dependencies/onion/libonion.so
 
 # Exécutable
 TARGET = cube
@@ -18,7 +17,7 @@ TARGET = cube
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) $(LIBS) $(OBJ) (DEPENDNCIES) -o $@
+	$(CC) $(LIBS) $(OBJ) -o $@
 
 obj/%.o: src/%.c
 	@mkdir -p $(dir $@)

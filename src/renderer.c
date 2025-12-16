@@ -170,8 +170,8 @@ void drawWorld(unsigned int shader) {
                 
                 mat4 model;
                 glm_mat4_identity(model);
-                // Correction de l'alignement : décalage de -0.5 en X et Z pour correspondre à la physique (centrée)
-                glm_translate(model, (vec3){cx * CHUNK_SIZE_X - 0.5f, 0, cz * CHUNK_SIZE_Z - 0.5f});
+                // Correction de l'alignement : suppression du décalage de -0.5
+                glm_translate(model, (vec3){cx * CHUNK_SIZE_X, 0, cz * CHUNK_SIZE_Z});
                 glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, (float*)model);
                 
                 glDrawArrays(GL_TRIANGLES, 0, chunk->vertexCount);
@@ -196,7 +196,7 @@ void drawWorld(unsigned int shader) {
                 
                 mat4 model;
                 glm_mat4_identity(model);
-                glm_translate(model, (vec3){cx * CHUNK_SIZE_X - 0.5f, 0, cz * CHUNK_SIZE_Z - 0.5f});
+                glm_translate(model, (vec3){cx * CHUNK_SIZE_X, 0, cz * CHUNK_SIZE_Z});
                 glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, (float*)model);
                 
                 glDrawArrays(GL_TRIANGLES, 0, chunk->foliageVertexCount);
@@ -225,7 +225,7 @@ void drawWorld(unsigned int shader) {
                 
                 mat4 model;
                 glm_mat4_identity(model);
-                glm_translate(model, (vec3){cx * CHUNK_SIZE_X - 0.5f, 0, cz * CHUNK_SIZE_Z - 0.5f});
+                glm_translate(model, (vec3){cx * CHUNK_SIZE_X, 0, cz * CHUNK_SIZE_Z});
                 glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, (float*)model);
                 
                 glDrawArrays(GL_TRIANGLES, 0, chunk->transparentVertexCount);

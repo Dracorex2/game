@@ -39,7 +39,8 @@ void createTextureAtlas() {
     
     // Créer le Texture Array : [texSize x texSize x (blockCount * maxFrames)]
     int layers = game.blockCount * maxFrames;
-    unsigned char* atlasData = calloc(texSize * texSize * layers, 1);
+    // Allocation pour RGBA (4 octets par pixel)
+    unsigned char* atlasData = calloc(texSize * texSize * layers * 4, 1);
     
     printf("Texture Array: %dx%d (Max Resolution), %d blocs, %d frames max, %d layers\n", 
            texSize, texSize, game.blockCount, maxFrames, layers);

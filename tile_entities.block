@@ -2,10 +2,8 @@
 # Optional parts: + PartName PartModelPath
 # Animation: @ AnimationPath
 
-Chest Default models/chest.json
-@ animations/chest.json
+Chest Default models/chest.obp
 
-Hopper Default models/hopper.json
+Hopper Default models/hopper.obp
 
-Test Default models/anime_test.json
-@ animations/model.animation.json
+Test Default models/anime_test.obp

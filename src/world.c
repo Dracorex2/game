@@ -9,6 +9,7 @@
 #include "worldgen.h"
 #include "blockparser.h"
 #include "entityloader.h"
+#include "obp_loader.h"
 
 void initWorld() {
     // Charger les définitions de blocs depuis le fichier
@@ -70,11 +71,16 @@ void freeWorld() {
         game.world = NULL;
     }
     
-    // Libérer les chaînes allouées dynamiquement pour les blocs
+    // Libérer les chaînes et modèles alloués dynamiquement pour les blocs
     if(game.blocks) {
         for(int i = 0; i < game.blockCount; i++) {
             if(game.blocks[i].name) {
                 free(game.blocks[i].name);
+            }
+            // Libérer le modèle OBP si présent
+            if(game.blocks[i].model) {
+                freeOBPModel(game.blocks[i].model);
+                game.blocks[i].model = NULL;
             }
         }
         free(game.blocks);

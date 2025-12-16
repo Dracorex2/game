@@ -3,8 +3,7 @@
 
 #include <pthread.h>
 #include <stdio.h>
-#include "animation.h"
-#include "bedrock_loader.h"
+#include "obp_loader.h"
 
 #define CHUNK_SIZE_X 16
 #define CHUNK_SIZE_Y 16
@@ -140,8 +139,7 @@ struct BlockDefinition {
     int translucent; // 1 = translucide (verre, eau), ne rend pas faces internes
     int isDynamic;   // 1 = rendu via drawTileEntities (animé), 0 = rendu statique dans le chunk
     int animFrames;  // Nombre de frames d'animation (1 = statique)
-    Animation* animation; // Animation chargée (optionnel)
-    BedrockModel* model; // Modèle Bedrock chargé
+    OBPModel* model; // Modèle OBP chargé
     
     // Données de texture préchargées (temporaire avant création atlas)
     unsigned char* pixelData;
