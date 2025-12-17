@@ -9,4 +9,4 @@ Log          1 0 0 0 oak_log test_cube.obp
 Leaves       1 1 0 0 oak_leaves test_cube.obp
 Sand         1 0 0 0 sand test_cube.obp
 Water        0 0 1 0 water_flow test_cube.obp
-TestCubeMapped 1 0 0 0 test_mid test_cube_mapped.obp
+TestCubeMapped 1 0 0 0 test_mid test.obp

@@ -107,6 +107,44 @@ def generate_cube_faces(vertex_offset, size):
     return faces
 
 
+def get_uv_rect(face_name, uv_origin, size, tex_width, tex_height):
+    """Calcule les coordonnées UV (u_min, v_min, u_max, v_max) pour une face donnée (Box UV)"""
+    u, v = uv_origin
+    sx, sy, sz = size
+    
+    # Mapping standard Bedrock (Box UV)
+    # x=width(sx), y=height(sy), z=depth(sz)
+    
+    # Définition des rectangles [u, v, w, h] dans la texture
+    # Attention: Bedrock (0,0) est Top-Left, OBJ (0,0) est Bottom-Left
+    
+    rect = [0, 0, 0, 0]
+    
+    if face_name == 'north': # Front (Z)
+        rect = [u + sz, v + sz, sx, sy]
+    elif face_name == 'south': # Back (Z)
+        rect = [u + sz + sx + sz, v + sz, sx, sy]
+    elif face_name == 'east': # Right (X)
+        rect = [u, v + sz, sz, sy]
+    elif face_name == 'west': # Left (X)
+        rect = [u + sz + sx, v + sz, sz, sy]
+    elif face_name == 'up': # Top (Y)
+        rect = [u + sz, v, sx, sz]
+    elif face_name == 'down': # Bottom (Y)
+        rect = [u + sz + sx, v, sx, sz]
+        
+    # Conversion en coordonnées normalisées (0.0 - 1.0)
+    # u_min, v_min, u_max, v_max
+    # v est inversé pour OBJ (1.0 - v)
+    
+    u_min = rect[0] / tex_width
+    v_max = 1.0 - (rect[1] / tex_height) # Top of texture rect (low v in bedrock)
+    u_max = (rect[0] + rect[2]) / tex_width
+    v_min = 1.0 - ((rect[1] + rect[3]) / tex_height) # Bottom of texture rect (high v in bedrock)
+    
+    return (u_min, v_min, u_max, v_max)
+
+
 def convert_bedrock_to_obp(model_path, animation_path=None, output_path=None):
     """Convertit un modèle Bedrock JSON en format OBP"""
     
@@ -138,6 +176,11 @@ def convert_bedrock_to_obp(model_path, animation_path=None, output_path=None):
         else:
             print("Erreur: Format Bedrock non reconnu")
             return
+            
+        # Récupérer la taille de texture
+        description = geometry.get("description", {})
+        tex_width = description.get("texture_width", 64)
+        tex_height = description.get("texture_height", 64)
         
         bones = geometry.get("bones", [])
         
@@ -160,36 +203,96 @@ def convert_bedrock_to_obp(model_path, animation_path=None, output_path=None):
                 size = cube.get("size", [1, 1, 1])
                 pivot = cube.get("pivot", [0, 0, 0])
                 rotation = cube.get("rotation", [0, 0, 0])
+                uv_origin = cube.get("uv", [0, 0])
                 
                 # Générer les vertices
                 vertices = generate_cube_vertices(origin, size, pivot, rotation)
                 for v in vertices:
                     f.write(f"v {v[0]} {v[1]} {v[2]}\n")
                 
-                # UVs - Une set de 4 UVs par face (6 faces = 24 UVs)
-                # Chaque face a ses propres coordonnées UV (0,0 à 1,1)
-                uv_base = uv_count + 1  # OBJ indices commencent à 1
-                for face_idx in range(6):
-                    f.write("vt 0.0 0.0\n")
-                    f.write("vt 1.0 0.0\n")
-                    f.write("vt 1.0 1.0\n")
-                    f.write("vt 0.0 1.0\n")
+                # Identifier les faces actives (ordre de generate_cube_faces)
+                # 1. Front (North)
+                # 2. Back (South)
+                # 3. Bottom (Down)
+                # 4. Top (Up)
+                # 5. Right (East)
+                # 6. Left (West)
                 
-                # Générer les faces avec leurs UVs correspondants
+                active_faces = []
+                sx, sy, sz = size
+                
+                active_faces.append('north')
+                if sz > 0: active_faces.append('south')
+                if sy > 0: active_faces.append('down')
+                if sy > 0: active_faces.append('up')
+                if sx > 0: active_faces.append('east')
+                if sx > 0: active_faces.append('west')
+                
+                # Générer les UVs pour chaque face active
+                uv_base = uv_count + 1
+                
+                for face_name in active_faces:
+                    # Si uv_origin est une liste [u, v], utiliser Box UV
+                    if isinstance(uv_origin, list):
+                        u_min, v_min, u_max, v_max = get_uv_rect(face_name, uv_origin, size, tex_width, tex_height)
+                        
+                        f.write(f"vt {u_min} {v_min}\n")
+                        f.write(f"vt {u_max} {v_min}\n")
+                        f.write(f"vt {u_max} {v_max}\n")
+                        f.write(f"vt {u_min} {v_max}\n")
+                        
+                    # Si uv_origin est un dictionnaire, utiliser Per-Face UV
+                    elif isinstance(uv_origin, dict):
+                        # Format: "north": {"uv": [0, 0], "uv_size": [16, 16]}
+                        face_data = uv_origin.get(face_name)
+                        
+                        if face_data:
+                            uv = face_data.get("uv", [0, 0])
+                            uv_size = face_data.get("uv_size", None)
+                            
+                            # Si uv_size n'est pas spécifié, utiliser la taille de la face
+                            if uv_size is None:
+                                sx, sy, sz = size
+                                if face_name in ['north', 'south']: uv_size = [sx, sy]
+                                elif face_name in ['east', 'west']: uv_size = [sz, sy]
+                                elif face_name in ['up', 'down']:   uv_size = [sx, sz]
+                            
+                            u, v = uv
+                            w, h = uv_size
+                            
+                            # Calculer les coordonnées normalisées
+                            u_min = u / tex_width
+                            v_max = 1.0 - (v / tex_height)
+                            u_max = (u + w) / tex_width
+                            v_min = 1.0 - ((v + h) / tex_height)
+                            
+                            f.write(f"vt {u_min} {v_min}\n")
+                            f.write(f"vt {u_max} {v_min}\n")
+                            f.write(f"vt {u_max} {v_max}\n")
+                            f.write(f"vt {u_min} {v_max}\n")
+                        else:
+                            # Face non définie dans le mapping UV -> (0,0)
+                            f.write("vt 0.0 0.0\n")
+                            f.write("vt 1.0 0.0\n")
+                            f.write("vt 1.0 1.0\n")
+                            f.write("vt 0.0 1.0\n")
+                            
+                    else:
+                        # Fallback (0,0)
+                        f.write("vt 0.0 0.0\n")
+                        f.write("vt 1.0 0.0\n")
+                        f.write("vt 1.0 1.0\n")
+                        f.write("vt 0.0 1.0\n")
+
+                # Générer les faces
                 faces = generate_cube_faces(vertex_count, size)
+                
                 for face_idx, face in enumerate(faces):
-                    # Note: UV mapping simplifié, on utilise toujours les premiers UVs pour l'instant
-                    # Idéalement il faudrait mapper les faces aux bons UVs (Nord, Sud, Est, Ouest, Haut, Bas)
-                    # Mais comme on saute des faces, l'indexation change.
-                    # Pour les fleurs (cross), on utilise généralement la même texture partout.
                     uv_offset = uv_base + (face_idx * 4)
-                    # Si on dépasse le nombre d'UVs générés (car on a sauté des faces mais uv_base suppose 6 faces)
-                    # On clamp ou on utilise un modulo
-                    if uv_offset >= uv_base + 24: uv_offset = uv_base
-                    
                     f.write(f"f {face[0]}/{uv_offset} {face[1]}/{uv_offset+1} {face[2]}/{uv_offset+2} {face[3]}/{uv_offset+3}\n")
                 
                 vertex_count += 8
+                uv_count += len(faces) * 4
                 uv_count += 24  # 6 faces * 4 UVs par face
                 f.write("\n")
         
